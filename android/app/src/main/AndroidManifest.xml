@@ -1,8 +1,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="bunney_pos_android"
+        android:label="نظام بُنّي"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false"
+        android:fullBackupContent="false">
+        <!-- allowBackup=false is deliberate: the database is encrypted with a
+             key held in the Android Keystore, so an automatic cloud or ADB
+             backup would carry a file that can never be opened again. Moving
+             data between devices is the app's own export, not a system backup. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -11,7 +17,12 @@
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
-            android:windowSoftInputMode="adjustResize">
+            android:windowSoftInputMode="adjustResize"
+            android:screenOrientation="fullSensor">
+            <!-- fullSensor lets the device rotate to whatever the tablet is
+                 doing; a POS on a stand is often landscape and a phone in the
+                 hand is portrait. The layout adapts at 600dp, so neither is
+                 wrong. -->
             <!-- Specifies an Android theme to apply to this Activity as soon as
                  the Android process has started. This theme is visible to the user
                  while the Flutter UI initializes. After that, this theme continues
