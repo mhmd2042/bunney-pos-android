@@ -24,13 +24,17 @@ dependencies:
   # Arabic date and number shaping.
   intl: ^0.19.0
 
-  # Backup export/import to internal storage or a USB stick.
-  file_picker: ^8.3.7
-
   # Bluetooth (Android 12+) and USB access permissions.
   permission_handler: ^11.4.0
 
   cupertino_icons: ^1.0.8
+
+# file_picker is deliberately NOT here yet. It is only needed by the phase-4
+# backup export, and adding it now breaks the Android build: it declares
+# `compileSdk 34` while the flutter_plugin_android_lifecycle 2.0.35 it pulls in
+# requires 36, and AGP fails on the mismatch. Adding a dependency a phase before
+# its consumer means a build that cannot run for reasons unrelated to the work
+# at hand. It goes in with the screen that uses it.
 
 dev_dependencies:
   flutter_test:
