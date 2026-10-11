@@ -15,18 +15,39 @@ so the two never interfere.
 **Phase 1 — foundation (done).** The schema, the money rules and the permission
 tree are in place and verified.
 
+**Phase 2 — activation, login, always-on screen (done).**
+
 | Area | State |
 |---|---|
 | 16-table SQLite schema, same as desktop | ✅ verified against real SQLite |
 | Money as integer minor units (YER, 0% VAT) | ✅ 25 tests |
 | Two-role permission tree (18 capabilities) | ✅ |
 | PIN hashing (salted, iterated HMAC-SHA256) | ✅ SHA-256 proven against reference vectors |
-| Encrypted database (SQLCipher) | ⚙️ wired, device test pending |
+| Encrypted database (SQLCipher) | ✅ **verified on a real device** |
 | Coffee-palette theme, Arabic font bundled | ✅ |
 | Responsive layout (phone / tablet) | ✅ overflow-tested at 6 sizes |
 | Debug APK builds | ✅ verified with `aapt2 dump badging` |
-| Activation gate | ⏳ phase 2 |
+| **Screen stays on (configurable)** | ✅ native channel, applied at boot |
+| **One-time activation gate** | ✅ hashed code, Keystore marker |
+| **PIN login + lockout** | ✅ 5 attempts / 30s, per user |
 | POS, shifts, admin, printing | ⏳ phases 3–7 |
+
+### Activation code
+
+The app asks for a code once, after installation. The current code is
+**`BUNNEY2026`** — give it to the café owner; it is not a secret from them, only
+from anyone who copies the APK.
+
+To change it: put the new code in `tools/set_activation_code.dart`, run
+`flutter test tools/set_activation_code.dart`, and paste the printed hash into
+`_codeHash` in `lib/domain/activation.dart`.
+
+### Screen always on
+
+A till must not sleep. On by default, changeable from the admin settings (phase
+5). It uses `FLAG_KEEP_SCREEN_ON` on the app window, so Android releases it when
+the app is not in the foreground — no wakelock permission, no battery drain
+while the till is off screen.
 
 ---
 
