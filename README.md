@@ -24,6 +24,7 @@ tree are in place and verified.
 | Encrypted database (SQLCipher) | ⚙️ wired, device test pending |
 | Coffee-palette theme, Arabic font bundled | ✅ |
 | Responsive layout (phone / tablet) | ✅ overflow-tested at 6 sizes |
+| Debug APK builds | ✅ verified with `aapt2 dump badging` |
 | Activation gate | ⏳ phase 2 |
 | POS, shifts, admin, printing | ⏳ phases 3–7 |
 
