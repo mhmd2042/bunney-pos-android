@@ -23,7 +23,7 @@ tree are in place and verified.
 | PIN hashing (salted, iterated HMAC-SHA256) | ✅ SHA-256 proven against reference vectors |
 | Encrypted database (SQLCipher) | ⚙️ wired, device test pending |
 | Coffee-palette theme, Arabic font bundled | ✅ |
-| Responsive layout (phone / tablet) | ⏳ phase 3 |
+| Responsive layout (phone / tablet) | ✅ overflow-tested at 6 sizes |
 | Activation gate | ⏳ phase 2 |
 | POS, shifts, admin, printing | ⏳ phases 3–7 |
 
@@ -38,7 +38,7 @@ tree are in place and verified.
 That runs three gates: the SQL schema against a real SQLite, `flutter analyze`,
 and the Dart test suite. **A phase is not done until this is green.**
 
-Current: **60 checks passing** (23 schema + 37 Dart), zero analyzer issues.
+Current: **69 checks passing** (23 schema + 46 Dart), zero analyzer issues.
 
 ### What needs a device
 

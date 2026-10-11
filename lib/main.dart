@@ -1,121 +1,216 @@
+/// main.dart — application entry point.
+///
+/// Phase 1 boots the encrypted database, applies the schema, seeds the default
+/// accounts on a fresh install and shows a foundation-status screen. The login
+/// screen replaces it in phase 2, once the activation gate exists.
+library;
+
 import 'package:flutter/material.dart';
 
-void main() {
-  runApp(const MyApp());
+import 'core/constants.dart';
+import 'core/theme.dart';
+import 'data/database.dart';
+import 'data/user_repository.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const BunneyApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class BunneyApp extends StatelessWidget {
+  const BunneyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+      title: AppInfo.nameAr,
+      debugShowCheckedModeBanner: false,
+      theme: buildDarkTheme(),
+      darkTheme: buildDarkTheme(),
+      themeMode: ThemeMode.dark,
+      // Arabic is the product's language, not a translation of one.
+      locale: const Locale('ar'),
+      supportedLocales: const [Locale('ar'), Locale('en')],
+      builder: (context, child) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: child ?? const SizedBox.shrink(),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const BootScreen(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+/// Boots the database and reports what happened.
+///
+/// The database is opened here rather than lazily so a key or file problem is
+/// visible immediately, with an Arabic explanation, instead of surfacing as a
+/// failed query on the first sale.
+class BootScreen extends StatefulWidget {
+  const BootScreen({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<BootScreen> createState() => _BootScreenState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _BootScreenState extends State<BootScreen> {
+  String _status = 'جارٍ تهيئة قاعدة البيانات…';
+  String? _error;
+  bool _ready = false;
+  Map<String, String> _facts = const {};
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
+  @override
+  void initState() {
+    super.initState();
+    _boot();
+  }
+
+  Future<void> _boot() async {
+    try {
+      final db = await AppDatabase.open();
+      final users = UserRepository(db);
+
+      // A fresh install has no accounts; create the documented pair and flag
+      // them so the first login forces a new PIN.
+      final created = await users.ensureDefaultUsers();
+
+      final settings = await db.allSettings();
+      final count = await users.count();
+
+      if (!mounted) return;
+      setState(() {
+        _ready = true;
+        _status = 'قاعدة البيانات جاهزة';
+        _facts = {
+          'المسار': db.path,
+          'الحجم': '${(db.sizeBytes / 1024).toStringAsFixed(1)} KB',
+          'المستخدمون': '$count',
+          'أُنشئ الآن': '$created',
+          'العملة': settings['currency_code'] ?? '—',
+          'الضريبة': '${settings['tax_rate'] ?? '0'}%',
+          'الإصدار': AppInfo.version,
+        };
+      });
+    } on DatabaseException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.message;
+        _status = 'تعذّر فتح قاعدة البيانات';
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = '$e';
+        _status = 'خطأ غير متوقع';
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
+    final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
-          children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+      body: SafeArea(
+        child: Center(
+          // The content column is capped so a 10.5" tablet does not stretch a
+          // line of text across the whole screen.
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: Sizes.maxContentWidth),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(Sizes.pagePadding),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Icon(
+                    _error == null ? Icons.local_cafe : Icons.error_outline,
+                    size: 64,
+                    color: _error == null
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.error,
+                  ),
+                  const SizedBox(height: Sizes.gap),
+                  Text(
+                    AppInfo.nameAr,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.headlineMedium,
+                  ),
+                  Text(
+                    '${AppInfo.name} — Android ${AppInfo.version}',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: Sizes.gap * 2),
+                  if (!_ready && _error == null)
+                    const Center(child: CircularProgressIndicator()),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(Sizes.pagePadding),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(_status, style: theme.textTheme.titleMedium),
+                          if (_error != null) ...[
+                            const SizedBox(height: Sizes.gapSmall),
+                            Text(
+                              _error!,
+                              style: theme.textTheme.bodyMedium
+                                  ?.copyWith(color: theme.colorScheme.error),
+                            ),
+                          ],
+                          if (_facts.isNotEmpty) ...[
+                            const SizedBox(height: Sizes.gap),
+                            const Divider(),
+                            const SizedBox(height: Sizes.gapSmall),
+                            for (final entry in _facts.entries)
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 3),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    SizedBox(
+                                      width: 96,
+                                      child: Text(
+                                        entry.key,
+                                        style: theme.textTheme.labelMedium,
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: Text(
+                                        entry.value,
+                                        style: theme.textTheme.bodyMedium,
+                                        // A path is LTR data inside an RTL
+                                        // layout; without this the segments
+                                        // reorder and the path reads wrong.
+                                        textDirection: entry.key == 'المسار'
+                                            ? TextDirection.ltr
+                                            : null,
+                                        textAlign: entry.key == 'المسار'
+                                            ? TextAlign.left
+                                            : TextAlign.right,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (_ready) ...[
+                    const SizedBox(height: Sizes.gap * 2),
+                    Text(
+                      'المرحلة ١ مكتملة — شاشة الدخول في المرحلة ٢',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
+                ],
+              ),
             ),
-          ],
+          ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
       ),
     );
   }
