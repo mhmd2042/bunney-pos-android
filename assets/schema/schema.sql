@@ -286,6 +286,7 @@ INSERT OR IGNORE INTO settings (key, value) VALUES
     ('backup_keep_local',         '30'),
     ('require_open_shift',        '1'),
     ('low_stock_alerts',          '1'),
+    ('screen_always_on',          '1'),
     ('order_number_prefix',       ''),
     ('last_backup_at',            ''),
     ('schema_version',            '1');

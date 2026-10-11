@@ -46,10 +46,23 @@ class DatabaseException implements Exception {
 class AppDatabase {
   AppDatabase._(this._db, this.path);
 
-  final Database _db;
+  /// A database handle with no connection, for tests that need the type but
+  /// never touch the data. Any real call fails with a clear message rather than
+  /// a null dereference.
+  AppDatabase.forTesting()
+      : _db = null,
+        path = '';
+
+  final Database? _db;
   final String path;
 
-  Database get raw => _db;
+  Database get raw {
+    final value = _db;
+    if (value == null) {
+      throw DatabaseException('this handle has no connection (forTesting)');
+    }
+    return value;
+  }
 
   static AppDatabase? _instance;
 
@@ -68,7 +81,8 @@ class AppDatabase {
   static Future<void> close() async {
     final value = _instance;
     _instance = null;
-    if (value != null) await value._db.close();
+    final connection = value?._db;
+    if (connection != null) await connection.close();
   }
 
   /// Open (creating if needed) the encrypted database.
@@ -214,7 +228,7 @@ class AppDatabase {
 
   /// Read one setting, or [fallback] when it is absent.
   Future<String> setting(String key, {String fallback = ''}) async {
-    final rows = await _db.query('settings',
+    final rows = await raw.query('settings',
         columns: ['value'], where: 'key = ?', whereArgs: [key], limit: 1);
     if (rows.isEmpty) return fallback;
     return (rows.first['value'] as String?) ?? fallback;
@@ -222,7 +236,7 @@ class AppDatabase {
 
   /// Read every setting as a map — the shape the printer and reports want.
   Future<Map<String, String>> allSettings() async {
-    final rows = await _db.query('settings');
+    final rows = await raw.query('settings');
     return {
       for (final row in rows)
         row['key'] as String: (row['value'] as String?) ?? '',
@@ -231,7 +245,7 @@ class AppDatabase {
 
   /// Write one setting, creating it when absent.
   Future<void> setSetting(String key, String value) async {
-    await _db.insert(
+    await raw.insert(
       'settings',
       {
         'key': key,

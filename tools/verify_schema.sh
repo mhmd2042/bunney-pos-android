@@ -62,7 +62,7 @@ check "products"          "$(q 'SELECT COUNT(*) FROM products;')"          "25"
 check "modifier groups"   "$(q 'SELECT COUNT(*) FROM modifier_groups;')"   "6"
 check "modifiers"         "$(q 'SELECT COUNT(*) FROM modifiers;')"         "20"
 check "inventory items"   "$(q 'SELECT COUNT(*) FROM inventory_items;')"   "13"
-check "settings"          "$(q 'SELECT COUNT(*) FROM settings;')"          "22"
+check "settings"          "$(q 'SELECT COUNT(*) FROM settings;')"          "23"
 check "users (seeded in code, not SQL)" "$(q 'SELECT COUNT(*) FROM users;')" "0"
 
 echo

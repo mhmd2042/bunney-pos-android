@@ -10,8 +10,6 @@
 /// the app does not depend on what Arabic font the OEM shipped.
 library;
 
-import 'dart:ui' show FontFeature;
-
 import 'package:flutter/material.dart';
 
 import 'constants.dart';
