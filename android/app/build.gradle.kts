@@ -6,7 +6,13 @@ plugins {
 
 android {
     namespace = "com.bunney.bunney_pos_android"
-    compileSdk = flutter.compileSdkVersion
+    // Pinned explicitly rather than taken from flutter.compileSdkVersion.
+    // flutter_plugin_android_lifecycle (pulled in transitively by file_picker)
+    // declares an AAR metadata floor of 36, and Gradle fails the build when a
+    // dependency compiles against an older API level. Flutter's default is
+    // already 36 today, but pinning it means a future Flutter bump cannot
+    // silently lower it back and break the build again.
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -15,20 +21,22 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.bunney.bunney_pos_android"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        // Android 7.0. Deliberately low: a café's tablet is often an older
+        // device, and nothing here needs a newer API. Bluetooth printing asks
+        // for BLUETOOTH_CONNECT only on API 31+, which permission_handler
+        // handles by version.
+        minSdk = 24
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+            // TODO: Replace with a real signing config before distributing.
+            // Signing with the debug keys for now, so `flutter run --release`
+            // and `flutter build apk --release` work out of the box.
             signingConfig = signingConfigs.getByName("debug")
         }
     }
