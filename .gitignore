@@ -43,6 +43,9 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+# Gradle writes reports and intermediates under android/build/; the top-level
+# /build/ pattern does not match it.
+/android/build/
 
 # Signing material — never tracked.
 android/local.properties
