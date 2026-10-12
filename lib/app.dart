@@ -96,7 +96,7 @@ class _BunneyAppState extends State<BunneyApp> {
         return;
       }
 
-      final store = widget.secureStore ?? KeystoreStore();
+      final store = widget.secureStore ?? await PrefsStore.create();
 
       final db = await AppDatabase.open(directory: widget.databaseDirectory);
 

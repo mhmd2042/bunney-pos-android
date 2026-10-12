@@ -1,14 +1,15 @@
-/// data/secure_store.dart — the Keystore-backed key/value store.
+/// data/secure_store.dart — key/value storage for secrets and the activation marker.
 ///
-/// Two things live here and nowhere else: the database encryption key, and the
-/// "already activated" marker. Both are small, both must not be readable by
-/// another app or by a filesystem dump, and both must survive a reboot.
+/// Two different stores for two different jobs:
 ///
-/// `flutter_secure_storage` puts them in the Android Keystore (RSA-OAEP-wrapped
-/// AES-GCM), which is the strongest local storage Android offers without a
-/// server. SharedPreferences would be plain XML — readable on a rooted device
-/// and editable by anything with the file, which is exactly what the activation
-/// marker must resist.
+///   KeystoreStore — the database encryption key. This IS a secret: anyone who
+///   reads it can open the database file. It lives in the Android Keystore
+///   (RSA-OAEP-wrapped AES-GCM), the strongest local storage Android offers.
+///
+///   PrefsStore — the "already activated" marker. This is NOT a secret: the
+///   activation CODE is the secret, and it is stored only as a hash. The marker
+///   is a single boolean, so plain SharedPreferences is enough. Keystore-backed
+///   storage proved unreliable on API 25 devices — it silently failed to persist.
 ///
 /// The store is behind an interface so the activation gate and the database can
 /// be exercised in a test, where no Keystore exists.
@@ -17,6 +18,7 @@ library;
 import 'dart:developer' as developer;
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// The operations the app needs from secure storage.
 abstract class SecureStore {
@@ -80,6 +82,37 @@ class KeystoreStore implements SecureStore {
       return false;
     }
   }
+}
+
+/// SharedPreferences-backed store for the activation marker.
+///
+/// The marker is a single boolean, not a secret: the activation CODE is the
+/// secret, and it is stored only as a hash (see domain/activation.dart).
+/// Keystore-backed storage proved unreliable on API 25 devices — it silently
+/// failed to persist — so the marker lives in plain SharedPreferences instead.
+class PrefsStore implements SecureStore {
+  PrefsStore._(this._prefs);
+
+  final SharedPreferences _prefs;
+
+  static Future<PrefsStore> create() async {
+    final prefs = await SharedPreferences.getInstance();
+    return PrefsStore._(prefs);
+  }
+
+  @override
+  Future<String?> read(String key) async => _prefs.getString(key);
+
+  @override
+  Future<void> write(String key, String value) async {
+    await _prefs.setString(key, value);
+  }
+
+  @override
+  Future<void> delete(String key) async => _prefs.remove(key);
+
+  @override
+  Future<bool> contains(String key) async => _prefs.containsKey(key);
 }
 
 /// An in-memory store for tests, and for the desktop/web builds where the

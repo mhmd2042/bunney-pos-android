@@ -25,6 +25,12 @@ dependencies:
   # Android Keystore through flutter_secure_storage — never in the database,
   # never in the source.
   sqflite_sqlcipher: ^3.4.0
+
+  # Plain key/value storage for the activation marker. The activation CODE is
+  # the secret (stored only as a hash); the marker is just a boolean "this
+  # device has been activated", so SharedPreferences is enough. Keystore-backed
+  # storage proved unreliable on API 25 devices.
+  shared_preferences: ^2.5.2
   flutter_secure_storage: ^9.2.4
   path_provider: ^2.1.4
   path: ^1.9.0
