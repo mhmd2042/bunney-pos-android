@@ -26,8 +26,8 @@ const String screenAlwaysOnKey = 'screen_always_on';
 const String screenAlwaysOnDefault = '1';
 
 class ScreenService {
-  /// `db` is public because it is what the caller has; the field keeps the same
-  /// name so an initializing formal can be used.
+  /// `db` and `bridge` keep the parameter names so an initializing formal can be
+  /// used; `bridge` falls back to the real channel when omitted.
   ScreenService({required this.db, NativeBridge? bridge})
       : bridge = bridge ?? NativeBridge.instance;
 
@@ -45,9 +45,18 @@ class ScreenService {
 
   /// Read the setting and apply it. Call once, after the database is open and
   /// the first frame is on screen.
+  ///
+  /// Falls back to the default when the setting cannot be read — a missing,
+  /// locked, or corrupt database must not stop the app from starting.
   Future<bool> apply() async {
-    final raw = await db.setting(screenAlwaysOnKey,
-        fallback: screenAlwaysOnDefault);
+    String? raw;
+    try {
+      raw = await db.setting(screenAlwaysOnKey,
+          fallback: screenAlwaysOnDefault);
+    } catch (_) {
+      // Boot must survive an unreadable settings row.
+      raw = screenAlwaysOnDefault;
+    }
     return setEnabled(raw == '1', persist: false);
   }
 

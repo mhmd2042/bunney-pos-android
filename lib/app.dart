@@ -13,6 +13,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/constants.dart';
 import 'core/theme.dart';
@@ -36,12 +37,25 @@ class BunneyApp extends StatefulWidget {
     this.secureStore,
     this.nativeBridge,
     this.databaseDirectory,
+    this.gate,
+    this.auth,
+    this.screen,
+    this.users,
   });
 
   /// Injected by tests; the real app uses the Keystore and the platform channel.
   final SecureStore? secureStore;
   final NativeBridge? nativeBridge;
   final String? databaseDirectory;
+
+  /// Pre-built services for tests. When any is provided the boot sequence skips
+  /// database opening entirely — a widget test has no path_provider channel,
+  /// so `getApplicationDocumentsDirectory()` would throw. This keeps the state
+  /// machine (booting → activation → login → ready) fully testable.
+  final ActivationGate? gate;
+  final AuthService? auth;
+  final ScreenService? screen;
+  final List<User>? users;
 
   @override
   State<BunneyApp> createState() => _BunneyAppState();
@@ -65,6 +79,23 @@ class _BunneyAppState extends State<BunneyApp> {
 
   Future<void> _boot() async {
     try {
+      // Tests that inject every service skip the database entirely.
+      if (widget.gate != null && widget.auth != null && widget.screen != null) {
+        _gate = widget.gate;
+        _auth = widget.auth;
+        _screen = widget.screen;
+        _users = widget.users ?? const [];
+        // Apply the screen policy just like the real boot does.
+        await _screen!.apply();
+        if (!mounted) return;
+        final activated = await widget.gate!.isActivated();
+        if (!mounted) return;
+        setState(() {
+          _stage = activated ? AppStage.login : AppStage.activation;
+        });
+        return;
+      }
+
       final store = widget.secureStore ?? KeystoreStore();
 
       final db = await AppDatabase.open(directory: widget.databaseDirectory);
@@ -143,6 +174,15 @@ class _BunneyAppState extends State<BunneyApp> {
       themeMode: ThemeMode.dark,
       locale: const Locale('ar'),
       supportedLocales: const [Locale('ar'), Locale('en')],
+      // Without these the framework's own chrome has no Arabic: it logs
+      // "locale ar is not supported by all of its localization delegates" and
+      // falls back, which on a device shows Flutter's red error page. The app's
+      // own text is Arabic literals; this covers Material's.
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       // Arabic is the product's language, not a translation of one: the whole
       // tree is mirrored, not just the strings.
       builder: (context, child) => Directionality(
